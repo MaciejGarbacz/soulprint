@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Model</title>
+</head>
+<body>
+    <h1>Welcome to Your AI Model</h1>
+    <p>Today's topic of conversation: <strong>{{ topic_of_conversation }}</strong></p>
+
+    <h2>Mistral's Response:</h2>
+    <p>{{ llm_response }}</p>
+
+    <h3>Submit your input:</h3>
+    <form method="POST">
+        <label for="user_input">Enter your message:</label><br>
+        <textarea id="user_input" name="user_input" rows="4" cols="50" required></textarea><br><br>
+        <button type="submit">Submit</button>
+    </form>
+
+</body>
+</html>

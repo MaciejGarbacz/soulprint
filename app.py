@@ -52,15 +52,32 @@ def create_app():
 
         return jsonify({'topics': topics_data}), 200
 
-    # Route for the home page that shows the current topic of conversation and Mistral's response
     @app.route('/', methods=['GET', 'POST'])
     def home():
         topic_of_conversation = get_oldest_topic()
-        llm_response = get_llm_response(get_message(topic_of_conversation))  # Send "Hello" to Mistral LLM
+        llm_response = get_llm_response(get_message(topic_of_conversation))  # Initial question
 
         if request.method == 'POST':
             user_input = request.form['user_input']  # Get the user input from the form
-            update_node_conversation_log(topic_of_conversation, user_input)  # Update the node
+            node = Node.query.filter_by(topic=topic_of_conversation).first()
+            
+            if node:
+                # Update the conversation log with user input
+                update_node_conversation_log(topic_of_conversation, user_input)
+
+                # Get the follow-up topics from Mistral based on question/answer
+                question_answer = f"Q: {llm_response}\nA: {user_input}"
+                follow_up_topics = get_follow_up_topics(question_answer)
+
+                # Create child nodes for each follow-up topic
+                for follow_up_topic in follow_up_topics:
+                    create_child_node(parent=node, topic=follow_up_topic)
+
+                # Display the follow-up topics to the user
+                return render_template('home.html', 
+                                    topic_of_conversation=topic_of_conversation, 
+                                    llm_response=llm_response, 
+                                    follow_up_topics=follow_up_topics)
 
         return render_template('home.html', topic_of_conversation=topic_of_conversation, llm_response=llm_response)
 
@@ -83,6 +100,34 @@ def initialize_base_topics():
 def get_oldest_topic():
     oldest_node = Node.query.order_by(Node.updated_at).first()  # Orders by 'updated_at' ascending (oldest first)
     return oldest_node.topic if oldest_node else "No topics available"
+
+def get_follow_up_topics(question_answer):
+    try:
+        prompt = f"""You're tasked with creating the best user model. Based on this question/answer combination, 
+        create possible follow-up topics. Answer only with the list of topics, don't provide any other text.
+        
+        {question_answer}
+        """
+        
+        response = mistral_client.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        # Parse the response into a list of topics (assuming the response is a newline-separated list)
+        topics = response.choices[0].message.content.split("\n")
+        return [topic.strip() for topic in topics if topic.strip()]  # Clean up whitespace
+    except Exception as e:
+        return [f"Error generating follow-up topics: {str(e)}"]
+
+def create_child_node(parent, topic):
+    new_node = Node(
+        topic=topic,
+        conversation_log="",  # Initially empty
+        updated_at=datetime.utcnow(),  # Set the current time
+        parent=parent  # Set the parent node
+    )
+    db.session.add(new_node)
+    db.session.commit()
 
 # Function to send a message to Mistral and get the response
 def get_llm_response(message):
@@ -110,11 +155,18 @@ def update_node_conversation_log(topic, user_input):
         db.session.commit()
 
 def get_message(topic_of_conversation):
+    node = Node.query.filter_by(topic=topic_of_conversation).first()
+    conversation_log = node.conversation_log if node and node.conversation_log else "No previous conversation."
+    
     return f"""You are an assistant in an application that aims to build the most accurate user model 
-    through conversation. You will be given the topic of conversation. Please output a question that will 
-    be directed to the user as a promt for their answer about this topic. Aim to make the question engaging 
-    and do not be afraid to dig into sensitive topics.
+    through conversation. You will be given the topic of conversation along with the previous conversation 
+    log. Please output a question that will be directed to the user as a prompt for their answer about 
+    this topic. Aim to make the question engaging and do not be afraid to dig into sensitive topics.
+    
     The topic of conversation is: {topic_of_conversation}.
+    
+    Previous conversation log: {conversation_log}
+    
     Answer only with the question you wish to ask the user. Do not provide any other text."""
 
 if __name__ == "__main__":

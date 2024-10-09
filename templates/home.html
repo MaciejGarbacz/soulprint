@@ -8,6 +8,7 @@
 <body>
     <h1>Welcome to Your AI Model</h1>
     <p>Today's topic of conversation: <strong>{{ topic_of_conversation }}</strong></p>
+    <p>Previous conversation: <strong>{{ conversation_log }}</strong></p>
 
     <h2>Mistral's Response:</h2>
     <p>{{ llm_response }}</p>
@@ -19,5 +20,13 @@
         <button type="submit">Submit</button>
     </form>
 
+    {% if follow_up_topics %}
+        <h3>Follow-up Topics:</h3>
+        <ul>
+            {% for topic in follow_up_topics %}
+                <li>{{ topic }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 </body>
 </html>

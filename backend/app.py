@@ -14,7 +14,7 @@ BASE_TOPICS = [
 ]
 
 # Initialize the Mistral client
-api_key =  "1ziO7tF5HqjrJv3ovw7iOjwbrTeva0HU"# Ensure your API key is set in your environment
+api_key =  "API_KEY"# Ensure your API key is set in your environment
 mistral_client = Mistral(api_key=api_key)
 
 def create_app():

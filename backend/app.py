@@ -70,18 +70,23 @@ def create_app():
         data = request.json
         user_input = data['user_input']
         topic_of_conversation = get_oldest_topic()
-        
-        update_node_conversation_log(topic_of_conversation, user_input)
-        
+
+        # Generate the question based on the conversation history
+        question = get_llm_response(get_message(topic_of_conversation))
+
+        # Save both the question and the answer
+        update_node_conversation_log(topic_of_conversation, question, user_input)
+
         node = Node.query.filter_by(topic=topic_of_conversation).first()
-        question_answer = f"Q: {get_llm_response(get_message(topic_of_conversation))}\nA: {user_input}"
+        question_answer = f"Q: {question}\nA: {user_input}"
         follow_up_topics = get_follow_up_topics(question_answer)
-        
+
         for follow_up_topic in follow_up_topics:
             create_child_node(parent=node, topic=follow_up_topic)
-        
+
+        # Generate a new LLM response based on the updated conversation
         new_llm_response = get_llm_response(get_message(topic_of_conversation))
-        
+
         return jsonify({
             'llm_response': new_llm_response,
             'follow_up_topics': follow_up_topics
@@ -109,21 +114,26 @@ def get_oldest_topic():
 
 def get_follow_up_topics(question_answer):
     try:
-        prompt = f"""You're tasked with creating the best user model. Based on this question/answer combination, 
-        create possible follow-up topics. Answer only with the list of topics, don't provide any other text.
-        
+        prompt = f"""You're tasked with creating the most accurate user model possible by suggesting new conversation topics. 
+        Based on this question/answer combination, provide 3 concise follow-up topics that are relevant to the user's experience 
+        and can help explore the user's interests, habits, or deeper aspects of their personality. 
+        These topics should be short and descriptive, ideally limited to a few words each. 
+        Avoid overly long or vague suggestions.
+
+        Question and Answer:
         {question_answer}
         """
-        
+
         response = mistral_client.chat.complete(
             model="mistral-large-latest",
             messages=[{"role": "user", "content": prompt}]
         )
         # Parse the response into a list of topics (assuming the response is a newline-separated list)
         topics = response.choices[0].message.content.split("\n")
-        return [topic.strip() for topic in topics if topic.strip()]  # Clean up whitespace
+        return [topic.strip() for topic in topics[:3] if topic.strip()]  # Limit to 3 topics and clean up whitespace
     except Exception as e:
         return [f"Error generating follow-up topics: {str(e)}"]
+
 
 def create_child_node(parent, topic):
     new_node = Node(
@@ -149,14 +159,15 @@ def get_llm_response(message):
         return f"Error getting response: {str(e)}"
 
 # Function to update the conversation log of the node
-def update_node_conversation_log(topic, user_input):
+def update_node_conversation_log(topic, question, user_input):
     node = Node.query.filter_by(topic=topic).first()
     if node:
-        # Update the conversation log and adjust the updated_at timestamp
+        # Append the question and the user input, tagging each entry
         if node.conversation_log:
-            node.conversation_log += f"\n{user_input}"
+            node.conversation_log += f"\nQ: {question}\nA: {user_input}"
         else:
-            node.conversation_log = user_input
+            node.conversation_log = f"Q: {question}\nA: {user_input}"
+        
         node.updated_at = datetime.utcnow()  # Adjust the update time to current
         db.session.commit()
 

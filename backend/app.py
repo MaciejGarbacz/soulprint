@@ -56,40 +56,47 @@ def create_app():
     def serve():
         return app.send_static_file('index.html')
 
+
     @app.route('/api/initial_data', methods=['GET'])
     def get_initial_data():
         topic_of_conversation = get_oldest_topic()
-        llm_response = get_llm_response(get_message(topic_of_conversation))
+        question = get_llm_response(get_message(topic_of_conversation))
         return jsonify({
             'topic': topic_of_conversation,
-            'llm_response': llm_response
+            'question': question
         })
 
     @app.route('/api/submit', methods=['POST'])
     def submit_input():
         data = request.json
+        
         user_input = data['user_input']
-        topic_of_conversation = get_oldest_topic()
-
-        # Generate the question based on the conversation history
-        question = get_llm_response(get_message(topic_of_conversation))
-
-        # Save both the question and the answer
+        topic_of_conversation = data['topic']
+        question = data['question']
+        
         update_node_conversation_log(topic_of_conversation, question, user_input)
-
+        
         node = Node.query.filter_by(topic=topic_of_conversation).first()
         question_answer = f"Q: {question}\nA: {user_input}"
         follow_up_topics = get_follow_up_topics(question_answer)
-
+        
         for follow_up_topic in follow_up_topics:
             create_child_node(parent=node, topic=follow_up_topic)
-
-        # Generate a new LLM response based on the updated conversation
-        new_llm_response = get_llm_response(get_message(topic_of_conversation))
-
+        
         return jsonify({
-            'llm_response': new_llm_response,
             'follow_up_topics': follow_up_topics
+        })
+
+    @app.route('/api/generate_answer', methods=['POST'])
+    def generate_answer():
+        data = request.json
+        question = data['question']
+        
+        # Generate an answer using the AI model
+        generated_answer = get_llm_response(f"Please provide a brief answer to the following question: {question}")
+        
+        return jsonify({
+            'generated_answer': generated_answer
         })
     
     return app

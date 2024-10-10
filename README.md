@@ -1,6 +1,6 @@
 # Soulprint 
 
-Soulprint is an application that aims to build the most accurate model of You through conversation. It dives into your experiences, memories, goals, and aspirations to create a comprehensive understanding of who you are.
+Soulprint aims to build the most accurate model of You through conversation. It begins with 10 base categories which will explore your experiences, memories, goals, and aspirations to create a comprehensive understanding of who you are.
 
 ## Project Overview
 
@@ -65,31 +65,8 @@ Soulprint engages users in a dynamic conversation, presenting thought-provoking 
 
 3. Open your browser and navigate to `http://localhost:3000` to use the application.
 
-## Building for Production
-
-When you're ready to deploy:
-
-1. Build the React frontend:
-   ```
-   cd frontend
-   npm run build
-   ```
-
-2. Ensure your Flask app is configured to serve the built React app from the `frontend/build` directory.
-
-3. Run your Flask server to serve both the frontend and backend.
-
-
-## License
-
-[MIT License](LICENSE)
-
 ## Contact
 
-[Maciej Garbacz] - [maciejgarbacz7@gmail.com]
-
-Project Link: https://github.com/yourusername/soulprint
-
----
+Maciej Garbacz - [maciejgarbacz7@gmail.com]
 
 Happy soul-searching with Soulprint!

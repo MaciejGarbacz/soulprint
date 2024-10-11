@@ -40,7 +40,6 @@ const App = () => {
       const data = await response.json();
       setFollowUpTopics(data.follow_up_topics);
       setUserInput('');
-      // We're not updating the question or fetching new data here
     } catch (error) {
       console.error('Error submitting user input:', error);
     }
@@ -62,6 +61,32 @@ const App = () => {
       console.error('Error generating answer:', error);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadNodes = async () => {
+    try {
+      const response = await fetch('/api/download_nodes');
+      const data = await response.json();
+      
+      // Create a Blob with the JSON data
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      
+      // Create a temporary URL for the Blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create a temporary <a> element to trigger the download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'nodes_data.json';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading nodes data:', error);
     }
   };
 
@@ -92,7 +117,7 @@ const App = () => {
         </CardContent>
       </Card>
       {followUpTopics.length > 0 && (
-        <Card>
+        <Card className="mb-4">
           <CardHeader>
             <CardTitle>Follow-up Topics</CardTitle>
           </CardHeader>
@@ -105,6 +130,7 @@ const App = () => {
           </CardContent>
         </Card>
       )}
+      <Button onClick={handleDownloadNodes}>Download Conversation Data</Button>
     </div>
   );
 };

@@ -14,7 +14,7 @@ BASE_TOPICS = [
 ]
 
 # Initialize the Mistral client
-api_key =  "API_KEY"# Ensure your API key is set in your environment
+api_key =  "EVGrgiLzJt6HLJ1DRUpdKxPbi6TUW6Rm"# Ensure your API key is set in your environment
 mistral_client = Mistral(api_key=api_key)
 
 def create_app():
@@ -98,6 +98,24 @@ def create_app():
         return jsonify({
             'generated_answer': generated_answer
         })
+
+    @app.route('/api/download_nodes', methods=['GET'])
+    def download_nodes():
+        nodes = Node.query.all()
+        nodes_data = []
+
+        for node in nodes:
+            node_data = {
+                'id': node.id,
+                'topic': node.topic,
+                'conversation_log': node.conversation_log,
+                'updated_at': node.updated_at.isoformat() if node.updated_at else None,
+                'parent_id': node.parent_id,
+                'children': [child.id for child in node.children]
+            }
+            nodes_data.append(node_data)
+
+        return jsonify(nodes_data)
     
     return app
 

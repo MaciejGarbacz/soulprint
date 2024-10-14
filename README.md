@@ -1,3 +1,5 @@
+![Soulprint Logo](assets/soulprint_logo.png)
+
 # Soulprint 
 
 Soulprint aims to build the most accurate model of You through conversation. It begins with 10 base categories which will explore your experiences, memories, goals, and aspirations to create a comprehensive understanding of who you are.

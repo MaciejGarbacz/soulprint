@@ -1,4 +1,4 @@
-![Soulprint Logo](assets/soulprint_logo.png)
+![Soulprint Logo] (assets/soulprint_logo.png)
 
 # Soulprint 
 

@@ -10,6 +10,8 @@ const App = () => {
   const [userInput, setUserInput] = useState('');
   const [followUpTopics, setFollowUpTopics] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showNextButton, setShowNextButton] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -37,12 +39,21 @@ const App = () => {
         },
         body: JSON.stringify({ user_input: userInput, topic: topic, question: question }),
       });
-      const data = await response.json();
-      setFollowUpTopics(data.follow_up_topics);
-      setUserInput('');
+      if (response.ok) {
+        const data = await response.json();
+        setFollowUpTopics(data.follow_up_topics);
+        setUserInput('');
+        setShowSuccess(true);
+        setShowNextButton(true);
+        setTimeout(() => setShowSuccess(false), 3000); // Hide success message after 3 seconds
+      }
     } catch (error) {
       console.error('Error submitting user input:', error);
     }
+  };
+
+  const handleNextQuestion = () => {
+    window.location.reload(); // Refresh the page to load the next question
   };
 
   const handleGenerateAnswer = async () => {
@@ -69,20 +80,13 @@ const App = () => {
       const response = await fetch('/api/download_nodes');
       const data = await response.json();
       
-      // Create a Blob with the JSON data
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      
-      // Create a temporary URL for the Blob
       const url = window.URL.createObjectURL(blob);
-      
-      // Create a temporary <a> element to trigger the download
       const link = document.createElement('a');
       link.href = url;
       link.download = 'nodes_data.json';
       document.body.appendChild(link);
       link.click();
-      
-      // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -108,12 +112,18 @@ const App = () => {
               className="mb-2"
             />
             <div className="flex space-x-2">
-              <Button type="submit">Submit</Button>
-              <Button type="button" onClick={handleGenerateAnswer} disabled={isGenerating}>
+              <Button type="submit" variant="secondary">Submit</Button>
+              <Button type="button" onClick={handleGenerateAnswer} disabled={isGenerating} variant="outline">
                 {isGenerating ? 'Generating...' : 'Generate Answer'}
               </Button>
+              {showNextButton && (
+                <Button type="button" onClick={handleNextQuestion} variant="default">Next Question</Button>
+              )}
             </div>
           </form>
+          {showSuccess && (
+            <p className="mt-2 text-green-500">Submitted successfully!</p>
+          )}
         </CardContent>
       </Card>
       {followUpTopics.length > 0 && (
@@ -130,7 +140,7 @@ const App = () => {
           </CardContent>
         </Card>
       )}
-      <Button onClick={handleDownloadNodes}>Download Conversation Data</Button>
+      <Button onClick={handleDownloadNodes} variant="destructive">Download Conversation Data</Button>
     </div>
   );
 };

@@ -14,7 +14,7 @@ BASE_TOPICS = [
 ]
 
 # Initialize the Mistral client
-api_key =  "API_KEY"# Ensure your API key is set in your environment
+api_key = "API_KEY"  # Ensure your API key is set in your environment
 mistral_client = Mistral(api_key=api_key)
 
 def create_app():
@@ -56,7 +56,6 @@ def create_app():
     def serve():
         return app.send_static_file('index.html')
 
-
     @app.route('/api/initial_data', methods=['GET'])
     def get_initial_data():
         topic_of_conversation = get_oldest_topic()
@@ -69,20 +68,20 @@ def create_app():
     @app.route('/api/submit', methods=['POST'])
     def submit_input():
         data = request.json
-        
+
         user_input = data['user_input']
         topic_of_conversation = data['topic']
         question = data['question']
-        
+
         update_node_conversation_log(topic_of_conversation, question, user_input)
-        
+
         node = Node.query.filter_by(topic=topic_of_conversation).first()
         question_answer = f"Q: {question}\nA: {user_input}"
         follow_up_topics = get_follow_up_topics(question_answer)
-        
+
         for follow_up_topic in follow_up_topics:
             create_child_node(parent=node, topic=follow_up_topic)
-        
+
         return jsonify({
             'follow_up_topics': follow_up_topics
         })
@@ -91,10 +90,10 @@ def create_app():
     def generate_answer():
         data = request.json
         question = data['question']
-        
+
         # Generate an answer using the AI model
         generated_answer = get_llm_response(f"Please provide a brief answer to the following question: {question}")
-        
+
         return jsonify({
             'generated_answer': generated_answer
         })
@@ -116,7 +115,19 @@ def create_app():
             nodes_data.append(node_data)
 
         return jsonify(nodes_data)
-    
+
+    # Add a route to clear the database
+    @app.route('/api/clear_database', methods=['POST'])
+    def clear_database():
+        try:
+            db.session.query(Link).delete()
+            db.session.query(Node).delete()
+            db.session.commit()
+            return jsonify({"message": "Database cleared successfully"}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
     return app
 
 # Function to check if base topics exist and add them if missing
@@ -192,23 +203,23 @@ def update_node_conversation_log(topic, question, user_input):
             node.conversation_log += f"\nQ: {question}\nA: {user_input}"
         else:
             node.conversation_log = f"Q: {question}\nA: {user_input}"
-        
+
         node.updated_at = datetime.utcnow()  # Adjust the update time to current
         db.session.commit()
 
 def get_message(topic_of_conversation):
     node = Node.query.filter_by(topic=topic_of_conversation).first()
     conversation_log = node.conversation_log if node and node.conversation_log else "No previous conversation."
-    
+
     return f"""You are an assistant in an application that aims to build the most accurate user model 
     through conversation. You will be given the topic of conversation along with the previous conversation 
     log. Please output a question that will be directed to the user as a prompt for their answer about 
     this topic. Aim to make the question engaging and do not be afraid to dig into sensitive topics.
-    
+
     The topic of conversation is: {topic_of_conversation}.
-    
+
     Previous conversation log: {conversation_log}
-    
+
     Answer only with the question you wish to ask the user. Do not provide any other text."""
 
 if __name__ == "__main__":

@@ -154,7 +154,17 @@ def get_follow_up_topics(question_answer):
         Based on this question/answer combination, provide 3 concise follow-up topics that are relevant to the user's experience 
         and can help explore the user's interests, habits, or deeper aspects of their personality. 
         These topics should be short and descriptive, ideally limited to a few words each. 
-        Avoid overly long or vague suggestions.
+        Avoid overly long or vague suggestions. Don't add special characters. Don't add words like "topic".
+
+        Examples of good output:
+        "Favourite Ourdoor Activities",
+        "Memories of Christmas",
+        "Bookstore Visits".
+        
+        Examples of bad output:
+        **Favorite Outdoor Activities**: Explore their interest in camping, hiking, or other outdoor pursuits. (too long, special chars)
+        **Music Influences**: Ask about their tastes in music and if they play any instruments like their dad. (too long, special chars)
+        **Family Traditions**: Discuss any other memorable family traditions or rituals they have. (too long, special chars)
 
         Question and Answer:
         {question_answer}

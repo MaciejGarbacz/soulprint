@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@shadcn/ui": "^0.0.4"
+    "@shadcn/ui": "^0.0.4",
+    "cross-spawn": ">=7.0.5"
   }
 }

@@ -1,4 +1,5 @@
 import os
+import yaml 
 from flask import Flask, render_template, request, jsonify
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
@@ -13,8 +14,12 @@ BASE_TOPICS = [
     "Education", "Technology", "Entertainment", "Goals", "Lifestyle"
 ]
 
+# Load credentials from credentials.yaml
+with open('credentials.yaml', 'r') as file:
+    credentials = yaml.safe_load(file)
+
 # Initialize the Mistral client
-api_key = "API_KEY"  # Ensure your API key is set in your environment
+api_key = credentials.get('API_KEY') 
 mistral_client = Mistral(api_key=api_key)
 
 def create_app():

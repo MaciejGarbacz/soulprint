@@ -75,6 +75,25 @@ const App = () => {
     }
   };
 
+  const handleBanTopic = async () => {
+    try {
+      const response = await fetch('/api/ban_topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topic })
+      });
+      if (response.ok) {
+        // Optionally display a message or refresh the question
+        alert("Topic banned successfully");
+        window.location.reload();
+      } else {
+        alert("Failed to ban topic");
+      }
+    } catch (error) {
+      console.error("Error banning topic:", error);
+    }
+  };
+
   const handleDownloadNodes = async () => {
     try {
       const response = await fetch('/api/download_nodes');
@@ -119,6 +138,7 @@ const App = () => {
               {showNextButton && (
                 <Button type="button" onClick={handleNextQuestion} variant="default">Next Question</Button>
               )}
+              <Button type="button" onClick={handleBanTopic} variant="destructive">Ban Topic</Button>
             </div>
           </form>
           {showSuccess && (

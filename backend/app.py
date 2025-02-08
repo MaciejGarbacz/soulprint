@@ -115,6 +115,32 @@ def create_app():
             nodes_data.append(node_data)
 
         return jsonify(nodes_data)
+    
+    
+    @app.route('/api/ban_topic', methods=['POST'])
+    def ban_topic():
+        data = request.json
+        app.logger.debug("Received data: %s", data)
+        
+        topic_of_conversation = data.get('topic')
+        if not topic_of_conversation:
+            app.logger.debug("No topic provided in the request.")
+            return jsonify({"message": "Topic parameter missing."}), 400
+
+        # Log the topic value received.
+        app.logger.debug("Looking up node with topic: '%s' and status: 'active'", topic_of_conversation)
+
+        node = Node.query.filter_by(topic=topic_of_conversation, status="active").first()
+        
+        if node:
+            app.logger.debug("Found node: %s", node)
+            node.status = "inactive"
+            db.session.commit()
+            app.logger.debug("Node %s set to inactive.", node)
+            return jsonify({"message": f"Topic '{node.topic}' banned successfully."}), 200
+
+        app.logger.debug("No active node found with topic: '%s'", topic_of_conversation)
+        return jsonify({"message": "Active topic not found."}), 404
 
     # Add a route to clear the database
     @app.route('/api/clear_database', methods=['POST'])
@@ -129,7 +155,6 @@ def create_app():
             return jsonify({"error": str(e)}), 500
 
     return app
-
 # Function to check if base topics exist and add them if missing
 def initialize_base_topics():
     for topic in BASE_TOPICS:
@@ -145,8 +170,8 @@ def initialize_base_topics():
 
 # Function to get the node with the oldest updated_at timestamp
 def get_oldest_topic():
-    oldest_node = Node.query.order_by(Node.updated_at).first()  # Orders by 'updated_at' ascending (oldest first)
-    return oldest_node.topic if oldest_node else "No topics available"
+    oldest_node = Node.query.filter_by(status="active").order_by(Node.updated_at).first()
+    return oldest_node.topic if oldest_node else "No active topics available"
 
 def get_follow_up_topics(question_answer):
     try:

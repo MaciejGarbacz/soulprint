@@ -24,7 +24,7 @@ const MoonIcon = () => (
 );
 
 const App = () => {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [topic, setTopic] = useState('');
   const [question, setQuestion] = useState('');
   const [llmResponse, setLlmResponse] = useState('');

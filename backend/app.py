@@ -181,8 +181,8 @@ def create_app():
                 for child in node.children:
                     G.add_edge(node.id, child.id)
                     
-            # Calculate positions using spring layout
-            pos = nx.spring_layout(G)
+            # Calculate positions using planar layout
+            pos = nx.planar_layout(G)
             
             # Create edge traces
             edge_x = []
@@ -232,7 +232,8 @@ def create_app():
                     showlegend=False,
                     margin=dict(b=20, l=5, r=5, t=40),
                     xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    dragmode='pan'  # Enable dragging
                 )
             )
             

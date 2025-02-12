@@ -23,6 +23,12 @@ const MoonIcon = () => (
   </svg>
 );
 
+const InfoIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+  </svg>
+);
+
 const App = () => {
   const [darkMode, setDarkMode] = useState(true);
   const [topic, setTopic] = useState('');
@@ -35,10 +41,9 @@ const App = () => {
   const [showNextButton, setShowNextButton] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
   const [graphData, setGraphData] = useState(null);
-  // New state for controlling the menu visibility
   const [menuOpen, setMenuOpen] = useState(false);
+  const [infoHovered, setInfoHovered] = useState(false);
 
-  // Create a ref for the Plotly container
   const plotlyRef = useRef(null);
 
   useEffect(() => {
@@ -81,7 +86,7 @@ const App = () => {
         setUserInput('');
         setShowSuccess(true);
         setShowNextButton(true);
-        setTimeout(() => setShowSuccess(false), 3000); // Hide success message after 3 seconds
+        setTimeout(() => setShowSuccess(false), 3000);
       }
     } catch (error) {
       console.error('Error submitting user input:', error);
@@ -89,7 +94,7 @@ const App = () => {
   };
 
   const handleNextQuestion = () => {
-    window.location.reload(); // Refresh the page to load the next question
+    window.location.reload();
   };
 
   const handleGenerateAnswer = async () => {
@@ -119,7 +124,6 @@ const App = () => {
         body: JSON.stringify({ topic: topic })
       });
       if (response.ok) {
-        // Optionally display a message or refresh the question
         alert("Topic banned successfully");
         window.location.reload();
       } else {
@@ -149,7 +153,6 @@ const App = () => {
     }
   };
 
-  // Update handleShowGraph to fetch JSON and draw using Plotly
   const handleShowGraph = async () => {
     console.log("Show Graph button clicked");
     try {
@@ -157,7 +160,6 @@ const App = () => {
       const responseText = await response.text();
       console.log('Raw response text:', responseText);
       
-      // Optionally check if it starts with '{' indicating valid JSON
       if (responseText.trim().startsWith('{')) {
         const figJSON = JSON.parse(responseText);
         console.log('Received graph JSON:', figJSON);
@@ -171,7 +173,6 @@ const App = () => {
     }
   };
 
-  // Once the graph container is rendered and we have data, render the Plotly graph.
   useEffect(() => {
     console.log("useEffect triggered:", { showGraph, graphData, container: plotlyRef.current });
     if (showGraph && graphData && plotlyRef.current) {
@@ -186,10 +187,8 @@ const App = () => {
 
   const toggleGraph = async () => {
     if (showGraph) {
-      // Hide the graph if it's already shown
       setShowGraph(false);
     } else {
-      // Fetch the graph and show it
       try {
         const response = await fetch('/api/graph');
         const responseText = await response.text();
@@ -208,7 +207,6 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
-      {/* Dark mode toggle */}
       <button
         onClick={() => setDarkMode(!darkMode)}
         className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -216,7 +214,6 @@ const App = () => {
         {darkMode ? <SunIcon /> : <MoonIcon />}
       </button>
 
-      {/* New fixed menu on the right side */}
       <div 
         className="fixed right-4 top-20 z-50"
         onMouseEnter={() => setMenuOpen(true)}
@@ -246,11 +243,27 @@ const App = () => {
         )}
       </div>
 
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto p-4 relative">
         <h1 className="text-2xl font-bold mb-4">Welcome to Soulprint</h1>
         <Card className="mb-4">
-          <CardHeader>
+          <CardHeader className="relative">
             <CardTitle>Today's topic of conversation: {topic}</CardTitle>
+            <div 
+              className="absolute top-0 right-0"
+              onMouseEnter={() => setInfoHovered(true)}
+              onMouseLeave={() => setInfoHovered(false)}
+            >
+              <InfoIcon />
+              {infoHovered && (
+                <div className="absolute right-0 mt-2 w-64 p-2 bg-white dark:bg-gray-800 shadow-lg rounded">
+                  <ul className="text-sm">
+                    <li><strong>Next Question:</strong> Loads the next topic of conversation.</li>
+                    <li><strong>Ban Topic:</strong>The given topic won't be explored again in the future.</li>
+                    <li><strong>Show/Hide Graph:</strong> Toggles the visibility of the graph.</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <p className="mb-2"><strong>Question:</strong> {question}</p>
@@ -264,7 +277,6 @@ const App = () => {
               />
               <div className="flex space-x-2">
                 <Button type="submit" variant="secondary">Submit</Button>
-                {/* Removed Generate Answer button here */}
                 {showNextButton && (
                   <Button type="button" onClick={handleNextQuestion} variant="default">Next Question</Button>
                 )}

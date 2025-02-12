@@ -184,6 +184,28 @@ const App = () => {
     }
   }, [showGraph, graphData]);
 
+  const toggleGraph = async () => {
+    if (showGraph) {
+      // Hide the graph if it's already shown
+      setShowGraph(false);
+    } else {
+      // Fetch the graph and show it
+      try {
+        const response = await fetch('/api/graph');
+        const responseText = await response.text();
+        if (responseText.trim().startsWith('{')) {
+          const figJSON = JSON.parse(responseText);
+          setGraphData(figJSON);
+          setShowGraph(true);
+        } else {
+          console.error("Response is not valid JSON");
+        }
+      } catch (error) {
+        console.error("Error fetching graph data:", error);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
       {/* Dark mode toggle */}
@@ -247,6 +269,9 @@ const App = () => {
                   <Button type="button" onClick={handleNextQuestion} variant="default">Next Question</Button>
                 )}
                 <Button type="button" onClick={handleBanTopic} variant="destructive">Ban Topic</Button>
+                <Button type="button" onClick={toggleGraph} variant="secondary">
+                  {showGraph ? 'Hide Graph' : 'Show Graph'}
+                </Button>
               </div>
             </form>
             {showSuccess && (
@@ -268,17 +293,8 @@ const App = () => {
             </CardContent>
           </Card>
         )}
-        {/* Removed the Download Conversation Data button from here */}
-        <div className="flex space-x-2">
-          <Button onClick={handleShowGraph} variant="primary">
-            Show Graph
-          </Button>
-        </div>
         {showGraph && (
           <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Graph Visualization</CardTitle>
-            </CardHeader>
             <CardContent>
               <div
                 ref={plotlyRef}

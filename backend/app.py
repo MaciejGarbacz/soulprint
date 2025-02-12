@@ -1,12 +1,16 @@
 import os
 import yaml 
-from flask import Flask, render_template, request, jsonify
+import io
+import graphviz
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from datetime import datetime
 from database import init_db
 from models.node import db, Node, Link
 from mistralai import Mistral
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Define the base topics
 BASE_TOPICS = [
@@ -23,7 +27,7 @@ api_key = credentials.get('API_KEY')
 mistral_client = Mistral(api_key=api_key)
 
 def create_app():
-    app = Flask(__name__, static_folder='../frontend/build', static_url_path='/')
+    app = Flask(__name__, static_folder='../frontend/build', static_url_path='/static')
 
     # Configuration
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ai_model.db'
@@ -157,6 +161,85 @@ def create_app():
             return jsonify({"message": "Database cleared successfully"}), 200
         except Exception as e:
             db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/graph', methods=['GET'])
+    def graph_api():
+        try:
+            nodes = Node.query.all()
+            app.logger.debug("Number of nodes found: %s", len(nodes))
+            
+            import networkx as nx
+            import plotly.graph_objects as go
+            
+            G = nx.DiGraph()
+            # Add nodes with labels
+            for node in nodes:
+                G.add_node(node.id, label=node.topic)
+            # Add edges for parent-child relationships
+            for node in nodes:
+                for child in node.children:
+                    G.add_edge(node.id, child.id)
+                    
+            # Calculate positions using spring layout
+            pos = nx.spring_layout(G)
+            
+            # Create edge traces
+            edge_x = []
+            edge_y = []
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+            edge_trace = go.Scatter(
+                x=edge_x, y=edge_y,
+                line=dict(width=1, color='#888'),
+                hoverinfo='none',
+                mode='lines'
+            )
+            
+            # Create node traces
+            node_x = []
+            node_y = []
+            node_text = []
+            for node in G.nodes():
+                x, y = pos[node]
+                node_x.append(x)
+                node_y.append(y)
+                node_text.append(G.nodes[node]['label'])
+            node_trace = go.Scatter(
+                x=node_x,
+                y=node_y,
+                mode='markers+text',
+                text=node_text,
+                textposition='top center',
+                marker=dict(
+                    showscale=False,
+                    color='#FFA500',
+                    size=10,
+                    line_width=2
+                ),
+                hoverinfo='text'
+            )
+            
+            # Build the Plotly figure
+            fig = go.Figure(
+                data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title="Nodes Graph",
+                    title_x=0.5,
+                    showlegend=False,
+                    margin=dict(b=20, l=5, r=5, t=40),
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+                )
+            )
+            
+            # Return the interactive graph as JSON
+            return jsonify(fig.to_dict())
+        except Exception as e:
+            app.logger.exception("Exception occurred while generating graph:")
             return jsonify({"error": str(e)}), 500
 
     return app

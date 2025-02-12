@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Plotly from 'plotly.js-dist';
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -25,6 +26,11 @@ const App = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showNextButton, setShowNextButton] = useState(false);
+  const [showGraph, setShowGraph] = useState(false);
+  const [graphData, setGraphData] = useState(null);
+
+  // Create a ref for the Plotly container
+  const plotlyRef = useRef(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -134,6 +140,41 @@ const App = () => {
     }
   };
 
+  // Update handleShowGraph to fetch JSON and draw using Plotly
+  const handleShowGraph = async () => {
+    console.log("Show Graph button clicked");
+    try {
+      const response = await fetch('/api/graph');
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      
+      // Optionally check if it starts with '{' indicating valid JSON
+      if (responseText.trim().startsWith('{')) {
+        const figJSON = JSON.parse(responseText);
+        console.log('Received graph JSON:', figJSON);
+        setGraphData(figJSON);
+        setShowGraph(true);
+      } else {
+        console.error("Response is not valid JSON");
+      }
+    } catch (error) {
+      console.error("Error fetching graph data:", error);
+    }
+  };
+
+  // Once the graph container is rendered and we have data, render the Plotly graph.
+  useEffect(() => {
+    console.log("useEffect triggered:", { showGraph, graphData, container: plotlyRef.current });
+    if (showGraph && graphData && plotlyRef.current) {
+      console.log("Rendering Plotly graph to container:", plotlyRef.current);
+      Plotly.newPlot(plotlyRef.current, graphData.data, graphData.layout);
+    } else {
+      if (!plotlyRef.current) {
+        console.log("plotlyRef.current is null");
+      }
+    }
+  }, [showGraph, graphData]);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
       <button
@@ -188,7 +229,21 @@ const App = () => {
             </CardContent>
           </Card>
         )}
-        <Button onClick={handleDownloadNodes} variant="destructive">Download Conversation Data</Button>
+        <div className="flex space-x-2">
+          <Button onClick={handleDownloadNodes} variant="destructive">
+            Download Conversation Data
+          </Button>
+          <Button onClick={handleShowGraph} variant="primary">
+            Show Graph
+          </Button>
+        </div>
+        {showGraph && (
+          <div
+            ref={plotlyRef}
+            id="plotly-div"
+            style={{ width: '100%', height: '600px', marginTop: '20px' }}
+          />
+        )}
       </div>
     </div>
   );

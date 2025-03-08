@@ -5,6 +5,7 @@ import { DragControls } from 'three/examples/jsm/controls/DragControls';
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import SynthwaveBackground from './components/SynthwaveBackground';
 
 // SVG Icons
 const HamburgerIcon = () => (
@@ -544,136 +545,139 @@ const App = () => {
   }, [showGraph, graphData]);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
-      {/* Outer container to limit width */}
-      <div className="max-w-5xl mx-auto px-4">
-        {/* Hamburger menu button and dark/light toggle remain unchanged */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="absolute top-4 left-4 z-50 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
-        >
-          <HamburgerIcon />
-        </button>
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-        >
-          {darkMode ? <SunIcon /> : <MoonIcon />}
-        </button>
-        
-        {/* Padding before title */}
-        <div className="pt-20"></div>
-        
-        {/* Hamburger menu overlay */}
-        {menuOpen && (
-          <div className="absolute top-16 left-4 z-50 bg-white dark:bg-gray-900 p-4 rounded shadow-md flex flex-col space-y-2">
-            <Button type="button" onClick={() => { handleGenerateAnswer(); setMenuOpen(false); }} variant="secondary">
-              Generate Answer
-            </Button>
-            <Button type="button" onClick={() => { handleDownloadNodes(); setMenuOpen(false); }} variant="secondary">
-              Download Conversation Data
-            </Button>
-          </div>
-        )}
-
-        {/* Title with neon effect centered */}
-        <div className="w-5/6 mx-auto text-center">
-          <h1 className="neon text-4xl font-bold mb-8 text-[#9b59b6] dark:text-white">
-            Welcome to Soulprint
-          </h1>
-        </div>
-
-        {/* Main conversation card */}
-        <Card className="card mb-4 mx-auto">
-          <CardHeader className="relative mt-4">
-            <CardTitle className="neon text-[#9b59b6] dark:text-white">
-              Today's topic of conversation: {topic}
-            </CardTitle>
-            {/* Info icon and tooltip */}
-            <div 
-              className="absolute top-0 right-0 p-2" 
-              onMouseEnter={() => setInfoHovered(true)} 
-              onMouseLeave={() => setInfoHovered(false)}
-            >
-              <div className="relative">
-                <InfoIcon />
-                {infoHovered && (
-                  <div className="absolute right-0 mt-1 w-64 bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm">
-                    <p><strong>Generate Answer:</strong> Generates a suggested answer.</p>
-                    <p><strong>Download Conversation Data:</strong> Downloads the current graph data.</p>
-                    <p><strong>Ban Topic:</strong> Removes the current topic.</p>
-                  </div>
-                )}
-              </div>
+    <div className="min-h-screen relative">
+      <SynthwaveBackground />
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
+        {/* Outer container to limit width */}
+        <div className="max-w-5xl mx-auto px-4">
+          {/* Hamburger menu button and dark/light toggle remain unchanged */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="absolute top-4 left-4 z-50 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <HamburgerIcon />
+          </button>
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            {darkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
+          
+          {/* Padding before title */}
+          <div className="pt-20"></div>
+          
+          {/* Hamburger menu overlay */}
+          {menuOpen && (
+            <div className="absolute top-16 left-4 z-50 bg-white dark:bg-gray-900 p-4 rounded shadow-md flex flex-col space-y-2">
+              <Button type="button" onClick={() => { handleGenerateAnswer(); setMenuOpen(false); }} variant="secondary">
+                Generate Answer
+              </Button>
+              <Button type="button" onClick={() => { handleDownloadNodes(); setMenuOpen(false); }} variant="secondary">
+                Download Conversation Data
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-2"><strong>Question:</strong> {question}</p>
-            <form onSubmit={handleSubmit}>
-              <div className="flex flex-col space-y-2 h-auto">
-                <textarea 
-                  value={userInput}
-                  onChange={(e) => {
-                    e.target.style.height = "auto";
-                    e.target.style.height = e.target.scrollHeight + "px";
-                    setUserInput(e.target.value);
-                  }}
-                  placeholder="Enter your answer" 
-                  className={`mb-2 w-full p-2 border rounded resize-none ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
-                  rows={2}
-                />
-                <div className="flex flex-wrap space-x-4 mt-2">
-                  <Button type="submit" variant="secondary">
-                    Submit
-                  </Button>
-                  <Button type="button" onClick={handleBanTopic} variant="destructive">
-                    Ban Topic
-                  </Button>
-                  <Button type="button" onClick={toggleGraph} variant="secondary">
-                    {showGraph ? 'Hide Graph' : 'Show Graph'}
-                  </Button>
-                  {showNextButton && (
-                    <Button type="button" onClick={handleNextQuestion} variant="default">
-                      Next Question
-                    </Button>
+          )}
+
+          {/* Title with neon effect centered */}
+          <div className="w-5/6 mx-auto text-center">
+            <h1 className="neon text-4xl font-bold mb-8 text-[#9b59b6] dark:text-white">
+              Welcome to Soulprint
+            </h1>
+          </div>
+
+          {/* Main conversation card */}
+          <Card className="card mb-4 mx-auto">
+            <CardHeader className="relative mt-4">
+              <CardTitle className="neon text-[#9b59b6] dark:text-white">
+                Today's topic of conversation: {topic}
+              </CardTitle>
+              {/* Info icon and tooltip */}
+              <div 
+                className="absolute top-0 right-0 p-2" 
+                onMouseEnter={() => setInfoHovered(true)} 
+                onMouseLeave={() => setInfoHovered(false)}
+              >
+                <div className="relative">
+                  <InfoIcon />
+                  {infoHovered && (
+                    <div className="absolute right-0 mt-1 w-64 bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm">
+                      <p><strong>Generate Answer:</strong> Generates a suggested answer.</p>
+                      <p><strong>Download Conversation Data:</strong> Downloads the current graph data.</p>
+                      <p><strong>Ban Topic:</strong> Removes the current topic.</p>
+                    </div>
                   )}
                 </div>
               </div>
-            </form>
-            {showSuccess && <p className="mt-2 text-green-500">Submitted successfully!</p>}
-          </CardContent>
-        </Card>
-
-        {/* Graph container with its own background and styling */}
-        {showGraph && (
-          <Card className="card mb-4 mx-auto">
-            <CardContent>
-              <div
-                ref={threeContainerRef}
-                id="three-graph-container"
-                className="w-full"
-                style={{ aspectRatio: '1 / 0.8' }}  // width:height = 1:0.8 (20% shorter than a square)
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Follow-up Topics Card */}
-        {followUpTopics.length > 0 && (
-          <Card className="card mb-4">
-            <CardHeader>
-              <CardTitle>Follow-up Topics</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul>
-                {followUpTopics.map((topic, index) => (
-                  <li key={index}>{topic}</li>
-                ))}
-              </ul>
+              <p className="mb-2"><strong>Question:</strong> {question}</p>
+              <form onSubmit={handleSubmit}>
+                <div className="flex flex-col space-y-2 h-auto">
+                  <textarea 
+                    value={userInput}
+                    onChange={(e) => {
+                      e.target.style.height = "auto";
+                      e.target.style.height = e.target.scrollHeight + "px";
+                      setUserInput(e.target.value);
+                    }}
+                    placeholder="Enter your answer" 
+                    className={`mb-2 w-full p-2 border rounded resize-none ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                    rows={2}
+                  />
+                  <div className="flex flex-wrap space-x-4 mt-2">
+                    <Button type="submit" variant="secondary">
+                      Submit
+                    </Button>
+                    <Button type="button" onClick={handleBanTopic} variant="destructive">
+                      Ban Topic
+                    </Button>
+                    <Button type="button" onClick={toggleGraph} variant="secondary">
+                      {showGraph ? 'Hide Graph' : 'Show Graph'}
+                    </Button>
+                    {showNextButton && (
+                      <Button type="button" onClick={handleNextQuestion} variant="default">
+                        Next Question
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </form>
+              {showSuccess && <p className="mt-2 text-green-500">Submitted successfully!</p>}
             </CardContent>
           </Card>
-        )}
-        
+
+          {/* Graph container with its own background and styling */}
+          {showGraph && (
+            <Card className="card mb-4 mx-auto">
+              <CardContent>
+                <div
+                  ref={threeContainerRef}
+                  id="three-graph-container"
+                  className="w-full"
+                  style={{ aspectRatio: '1 / 0.8' }}  // width:height = 1:0.8 (20% shorter than a square)
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Follow-up Topics Card */}
+          {followUpTopics.length > 0 && (
+            <Card className="card mb-4">
+              <CardHeader>
+                <CardTitle>Follow-up Topics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul>
+                  {followUpTopics.map((topic, index) => (
+                    <li key={index}>{topic}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          
+        </div>
       </div>
     </div>
   );

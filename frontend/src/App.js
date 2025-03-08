@@ -216,14 +216,16 @@ const App = () => {
           ? nodeDataRef.current.get(id).content
           : "Loading content...";
         const nodeMaterial = new THREE.MeshStandardMaterial({
-          color: 0x6699cc,
+          color: 0xC0C0C0,        // silver
           metalness: 0.8,
-          roughness: 0.2,
-          emissive: 0x111111,
+          roughness: 0.3,
+          emissive: 0x000000,
         });
         const nodeMesh = new THREE.Mesh(nodeGeometry, nodeMaterial);
+        // Set default color for later reset.
+        nodeMesh.userData.defaultColor = new THREE.Color(0xC0C0C0);
         nodeMesh.position.set(x * 10, y * 10, 0);
-        nodeMesh.userData = { id, label, content };
+        nodeMesh.userData = { ...nodeMesh.userData, id, label, content, defaultColor: nodeMesh.userData.defaultColor };
         scene.add(nodeMesh);
         nodesRef.current.push(nodeMesh);
         nodeMeshes[id] = nodeMesh;
@@ -237,7 +239,8 @@ const App = () => {
       canvas.width = size;
       canvas.height = size;
       const context = canvas.getContext('2d');
-      context.font = '48px Arial';
+      // Updated font to match the app's title style (using a font similar to neon-title)
+      context.font = '48px "Oswald", sans-serif';
       context.fillStyle = darkMode ? '#f7fafc' : '#1a202c';
       context.textAlign = 'center';
       context.textBaseline = 'top';
@@ -268,9 +271,12 @@ const App = () => {
       texture.minFilter = THREE.LinearFilter;
       const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
       const sprite = new THREE.Sprite(spriteMaterial);
+      // Offset sprite upward so it doesn't overlap the node:
+      sprite.position.set(0, 1.2, 0);
       sprite.scale.set(6, 6, 1);
-      sprite.position.set(0, 1.0, 0);
       sprite.raycast = () => {}; // prevent interference with hover
+      sprite.material.depthTest = false;
+      sprite.renderOrder = 999;
       node.add(sprite);
     });
 
@@ -290,10 +296,13 @@ const App = () => {
           if (dist2 < minDist2) { minDist2 = dist2; endNode = node; }
         });
         if (startNode && endNode) {
-          const points = [startNode.position.clone(), endNode.position.clone()];
-          const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-          const lineMaterial = new THREE.LineBasicMaterial({ 
-            color: darkMode ? 0xffffff : 0x888888 
+          const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+            startNode.position, endNode.position
+          ]);
+          const lineMaterial = new THREE.LineBasicMaterial({
+            color: 0xff00ff, // neon magenta
+            transparent: true,
+            opacity: 0.7,
           });
           const lineMesh = new THREE.Line(lineGeometry, lineMaterial);
           lineMesh.userData = { startNode, endNode };
@@ -375,12 +384,9 @@ const App = () => {
     };
     const updateEdgePositions = () => {
       edgesRef.current.forEach(edge => {
-        const positions = edge.geometry.attributes.position.array;
-        positions[0] = edge.userData.startNode.position.x;
-        positions[1] = edge.userData.startNode.position.y;
-        positions[3] = edge.userData.endNode.position.x;
-        positions[4] = edge.userData.endNode.position.y;
-        edge.geometry.attributes.position.needsUpdate = true;
+        const start = edge.userData.startNode.position;
+        const end = edge.userData.endNode.position;
+        edge.geometry.setFromPoints([start, end]);
       });
     };
 
@@ -426,21 +432,43 @@ const App = () => {
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(nodesRef.current, false);
       
+      // Reset all nodes to default silver.
+      nodesRef.current.forEach(node => {
+        node.material.color.copy(node.userData.defaultColor);
+      });
+      
       if (intersects.length > 0 && intersects[0].object.userData && intersects[0].object.userData.label) {
-        const node = intersects[0].object;
-        showTooltip(event.clientX, event.clientY, node.userData);
-        setHoveredNode(node.id);
+        const hovered = intersects[0].object;
+        // Only pulse when entering a new node.
+        if (hoveredNode !== hovered.id) {
+          hovered.scale.set(1.1, 1.1, 1.1);
+          setTimeout(() => { hovered.scale.set(1, 1, 1); }, 150);
+          setHoveredNode(hovered.id);
+        }
+        // Set hovered node color to neon cyan.
+        hovered.material.color.set(0x00ffff);
+        // Update adjacent nodes (those sharing an edge) to a darker cyan.
+        edgesRef.current.forEach(edge => {
+          if (edge.userData.startNode === hovered) {
+            edge.userData.endNode.material.color.set(0x008888);
+          } else if (edge.userData.endNode === hovered) {
+            edge.userData.startNode.material.color.set(0x008888);
+          }
+        });
+        showTooltip(event.pageX, event.pageY, hovered.userData);
       } else {
         hideTooltip();
         setHoveredNode(null);
       }
     };
-    
     const onMouseLeave = () => {
       hideTooltip();
       setHoveredNode(null);
+      // Reset all nodes to their default color.
+      nodesRef.current.forEach(node => {
+        node.material.color.copy(node.userData.defaultColor);
+      });
     };
-    
     renderer.domElement.addEventListener('mousemove', onMouseMove);
     renderer.domElement.addEventListener('mouseleave', onMouseLeave);
     
@@ -489,7 +517,6 @@ const App = () => {
       console.error("Error fetching graph data:", error);
     }
   };
-
   const toggleGraph = async () => {
     if (showGraph) setShowGraph(false);
     else await handleShowGraph();
@@ -519,91 +546,113 @@ const App = () => {
       >
         {darkMode ? <SunIcon /> : <MoonIcon />}
       </button>
-      <div 
-        className="fixed right-4 top-20 z-50"
-        onMouseEnter={() => setMenuOpen(true)}
-        onMouseLeave={() => setMenuOpen(false)}
+      
+      {/* Fixed menu toggle at right edge with high z-index */}
+      <button 
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="fixed top-16 right-4 z-50 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
       >
-        <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded cursor-pointer">
-          <HamburgerIcon />
+        <HamburgerIcon />
+      </button>
+      {menuOpen && (
+        <div className="fixed top-24 right-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
+          <Button type="button" onClick={handleGenerateAnswer} variant="default" className="mb-2 w-full">
+            Generate Answer
+          </Button>
+          <Button type="button" onClick={handleDownloadNodes} variant="default" className="w-full">
+            Download Conversation Data
+          </Button>
         </div>
-        {menuOpen && (
-          <div className="mt-2 bg-white dark:bg-gray-800 shadow-lg rounded p-2 flex flex-col gap-2">
-            <Button type="button" onClick={handleGenerateAnswer} disabled={isGenerating} variant="outline">
-              {isGenerating ? 'Generating...' : 'Generate Answer'}
-            </Button>
-            <Button type="button" onClick={handleDownloadNodes} variant="destructive">
-              Download Conversation Data
-            </Button>
-          </div>
-        )}
-      </div>
-      <div className="container mx-auto p-4 relative">
-        <h1 className="text-2xl font-bold mb-4">Welcome to Soulprint</h1>
-        <Card className="mb-4">
-          <CardHeader className="relative">
+      )}
+
+      <div className="container mx-auto p-8 relative">
+        <h1 className="neon-title text-4xl font-bold mb-8 text-center">
+          Welcome to Soulprint
+        </h1>
+        <Card className="card mb-4">
+          <CardHeader className="relative mt-4">
             <CardTitle>Today's topic of conversation: {topic}</CardTitle>
+            {/* Moved onMouseEnter/Leave to the outer container */}
             <div 
-              className="absolute top-0 right-0"
-              onMouseEnter={() => setInfoHovered(true)}
+              className="absolute top-0 right-0 p-2" 
+              onMouseEnter={() => setInfoHovered(true)} 
               onMouseLeave={() => setInfoHovered(false)}
             >
-              <InfoIcon />
-              {infoHovered && (
-                <div className="absolute right-0 mt-2 w-64 p-2 bg-white dark:bg-gray-800 shadow-lg rounded">
-                  <ul className="text-sm">
-                    <li><strong>Next Question:</strong> Loads the next topic of conversation.</li>
-                    <li><strong>Ban Topic:</strong> The given topic won't be explored again.</li>
-                    <li><strong>Show/Hide Graph:</strong> Toggles the visibility of the graph.</li>
-                  </ul>
-                </div>
-              )}
+              <div className="relative">
+                <InfoIcon />
+                {infoHovered && (
+                  <div className="absolute right-0 mt-1 w-64 bg-gray-200 dark:bg-gray-700 p-2 rounded text-sm">
+                    <p><strong>Generate Answer:</strong> Generates a suggested answer.</p>
+                    <p><strong>Download Conversation Data:</strong> Downloads the current graph data.</p>
+                    <p><strong>Ban Topic:</strong> Removes the current topic.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="mb-2"><strong>Question:</strong> {question}</p>
             <form onSubmit={handleSubmit}>
-              <Input 
-                type="text" 
-                value={userInput} 
-                onChange={(e) => setUserInput(e.target.value)} 
-                placeholder="Enter your answer" 
-                className="mb-2" 
-              />
-              <div className="flex space-x-2">
-                <Button type="submit" variant="secondary">Submit</Button>
-                {showNextButton && (
-                  <Button type="button" onClick={handleNextQuestion} variant="default">Next Question</Button>
-                )}
-                <Button type="button" onClick={handleBanTopic} variant="destructive">Ban Topic</Button>
-                <Button type="button" onClick={toggleGraph} variant="secondary">
-                  {showGraph ? 'Hide Graph' : 'Show Graph'}
-                </Button>
+              <div className="flex flex-col space-y-2 h-auto">  {/* container with dynamic height */}
+                <textarea 
+                  value={userInput}
+                  onChange={(e) => {
+                    e.target.style.height = "auto";
+                    e.target.style.height = e.target.scrollHeight + "px";
+                    setUserInput(e.target.value);
+                  }}
+                  placeholder="Enter your answer" 
+                  className={`mb-2 w-full p-2 border rounded resize-none ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                  rows={2}
+                />
+                {/* Adjusted height to reduce blank space and smaller margin for buttons */}
+                <div ref={threeContainerRef} id="three-graph-container" style={{ width: '100%', height: '300px' }} />
+                <div className="flex flex-wrap space-x-4 mt-2">
+                  <Button type="submit" variant="secondary">
+                    Submit
+                  </Button>
+                  <Button type="button" onClick={handleBanTopic} variant="destructive">
+                    Ban Topic
+                  </Button>
+                  <Button type="button" onClick={toggleGraph} variant="secondary">
+                    {showGraph ? 'Hide Graph' : 'Show Graph'}
+                  </Button>
+                  {showNextButton && (
+                    <Button type="button" onClick={handleNextQuestion} variant="default">
+                      Next Question
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
             {showSuccess && <p className="mt-2 text-green-500">Submitted successfully!</p>}
           </CardContent>
         </Card>
         {followUpTopics.length > 0 && (
-          <Card className="mb-4">
+          <Card className="card mb-4">
             <CardHeader>
               <CardTitle>Follow-up Topics</CardTitle>
             </CardHeader>
             <CardContent>
               <ul>
-                {followUpTopics.map((topic, index) => (<li key={index}>{topic}</li>))}
+                {followUpTopics.map((topic, index) => (
+                  <li key={index}>{topic}</li>
+                ))}
               </ul>
             </CardContent>
           </Card>
         )}
-        {showGraph && (
-          <Card className="mt-4">
+      </div>
+      
+      {showGraph && (
+        <div className="container mx-auto p-8">
+          <Card className="card mt-4">
             <CardContent>
               <div ref={threeContainerRef} id="three-graph-container" style={{ width: '100%', height: '600px' }} />
             </CardContent>
           </Card>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

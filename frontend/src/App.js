@@ -547,7 +547,7 @@ const App = () => {
   return (
     <div className="min-h-screen relative">
       <SynthwaveBackground />
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 relative bg-transparent/0">
         {/* Outer container to limit width */}
         <div className="max-w-5xl mx-auto px-4">
           {/* Hamburger menu button and dark/light toggle remain unchanged */}

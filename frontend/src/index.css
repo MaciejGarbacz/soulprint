@@ -33,12 +33,24 @@ h1, h2, h3, h4, h5, h6 {
   padding: 2rem;
   margin: 1rem;
   box-shadow: 0px 0px 15px 5px rgba(155, 89, 182, 0.3);
+  transition: all 0.3s ease;
 }
 
 .dark .card {
   background-color: #1a1a2e; /* Dark blue background for dark mode */
   border: 1px solid #0ff;  /* Cyan border for dark mode */
   box-shadow: 0px 0px 15px 5px rgba(0, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.37);
+}
+
+.dark .card:hover {
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.37);
 }
 
 /* Ripple Animation for Buttons */
@@ -135,9 +147,16 @@ h1, h2, h3, h4, h5, h6 {
 /* Glassmorphism */
 .glass {
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 /* Enhanced neon effects */
@@ -197,4 +216,30 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes scan {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100vh); }
+}
+
+/* Input fields in dark mode */
+.dark textarea,
+.dark input {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.dark textarea:focus,
+.dark input:focus {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced hover states for interactive elements */
+.dark .hover\:bg-gray-700:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Menu overlay in dark mode */
+.dark .bg-gray-900 {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

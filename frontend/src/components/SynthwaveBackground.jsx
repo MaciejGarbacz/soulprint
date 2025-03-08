@@ -20,26 +20,67 @@ const SynthwaveBackground = () => {
     const gridSpacing = 50;
     let offset = 0;
     
+    // Sun properties
+    const sunGradient = {
+      y: canvas.height * 0.5,
+      size: canvas.width * 0.15
+    };
+
     // Particle system
-    const particles = Array.from({ length: 50 }, () => ({
+    const particles = Array.from({ length: 100 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       size: Math.random() * 2 + 1,
-      speed: Math.random() * 1 + 0.5
+      speed: Math.random() * 1 + 0.5,
+      color: `hsl(${Math.random() * 60 + 280}, 100%, 70%)`
     }));
 
+    // Mountains
+    const mountains = [
+      { height: 0.5, color: '#2d0a4e' },
+      { height: 0.3, color: '#4c0c8c' },
+      { height: 0.2, color: '#6a0fb2' }
+    ];
+
+    const drawMountains = (height, color) => {
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height);
+      
+      // Create jagged mountain effect
+      for (let x = 0; x <= canvas.width; x += 50) {
+        const y = canvas.height - (Math.sin(x * 0.01) + 1) * canvas.height * height;
+        ctx.lineTo(x, y);
+      }
+      
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+
     const draw = () => {
-      // Clear canvas
+      // Clear canvas with fade effect
       ctx.fillStyle = 'rgba(10, 10, 30, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Create gradient background
+      // Create sunset gradient background
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, 'rgba(41, 0, 102, 0.9)');
-      gradient.addColorStop(0.5, 'rgba(103, 0, 139, 0.8)');
-      gradient.addColorStop(1, 'rgba(184, 0, 208, 0.7)');
+      gradient.addColorStop(0, '#000033');
+      gradient.addColorStop(0.5, '#4a0072');
+      gradient.addColorStop(1, '#ff007f');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw sun
+      const sunY = sunGradient.y + Math.sin(offset * 0.05) * 20;
+      const sunX = canvas.width / 2;
+      const sunRadius = sunGradient.size;
+      const sunGradientFill = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+      sunGradientFill.addColorStop(0, 'rgba(255, 255, 0, 1)');
+      sunGradientFill.addColorStop(1, 'rgba(255, 69, 0, 0)');
+      ctx.fillStyle = sunGradientFill;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+      ctx.fill();
 
       // Draw grid
       ctx.beginPath();
@@ -59,10 +100,13 @@ const SynthwaveBackground = () => {
       }
       ctx.stroke();
 
+      // Draw mountains
+      mountains.forEach(mountain => drawMountains(mountain.height, mountain.color));
+
       // Update and draw particles
       particles.forEach(particle => {
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${particle.size / 3})`;
+        ctx.fillStyle = particle.color;
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
 

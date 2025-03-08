@@ -87,8 +87,11 @@ const App = () => {
 
   // Toggle dark mode class on document
   useEffect(() => {
-    if (darkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [darkMode]);
 
   // Handle submit and other UI actions
@@ -108,7 +111,9 @@ const App = () => {
         setShowNextButton(true);
         setTimeout(() => setShowSuccess(false), 3000);
       }
-    } catch (error) { console.error('Error submitting user input:', error); }
+    } catch (error) {
+      console.error('Error submitting user input:', error);
+    }
   };
   const handleNextQuestion = () => window.location.reload();
   const handleGenerateAnswer = async () => {
@@ -158,7 +163,9 @@ const App = () => {
 
     // Clean up previous renderer if exists
     if (rendererRef.current) {
-      threeContainerRef.current.removeChild(rendererRef.current.domElement);
+      if (threeContainerRef.current.contains(rendererRef.current.domElement)) {
+        threeContainerRef.current.removeChild(rendererRef.current.domElement);
+      }
       rendererRef.current.dispose();
     }
     // Reset node and edge references
@@ -239,8 +246,8 @@ const App = () => {
       canvas.width = size;
       canvas.height = size;
       const context = canvas.getContext('2d');
-      // Updated font to match the app's title style (using a font similar to neon-title)
-      context.font = '48px "Oswald", sans-serif';
+      // Updated font to use Inter for node titles:
+      context.font = '48px "Inter", sans-serif';
       context.fillStyle = darkMode ? '#f7fafc' : '#1a202c';
       context.textAlign = 'center';
       context.textBaseline = 'top';
@@ -439,20 +446,18 @@ const App = () => {
       
       if (intersects.length > 0 && intersects[0].object.userData && intersects[0].object.userData.label) {
         const hovered = intersects[0].object;
-        // Only pulse when entering a new node.
         if (hoveredNode !== hovered.id) {
-          hovered.scale.set(1.1, 1.1, 1.1);
-          setTimeout(() => { hovered.scale.set(1, 1, 1); }, 150);
           setHoveredNode(hovered.id);
         }
-        // Set hovered node color to neon cyan.
-        hovered.material.color.set(0x00ffff);
-        // Update adjacent nodes (those sharing an edge) to a darker cyan.
+        // Use synthwave purple in light mode, cyan when dark mode
+        const primaryHoverColor = darkMode ? 0x00ffff : 0x8e44ad;
+        const adjacentColor = darkMode ? 0x008888 : 0x6c3483;
+        hovered.material.color.set(primaryHoverColor);
         edgesRef.current.forEach(edge => {
           if (edge.userData.startNode === hovered) {
-            edge.userData.endNode.material.color.set(0x008888);
+            edge.userData.endNode.material.color.set(adjacentColor);
           } else if (edge.userData.endNode === hovered) {
-            edge.userData.startNode.material.color.set(0x008888);
+            edge.userData.startNode.material.color.set(adjacentColor);
           }
         });
         showTooltip(event.pageX, event.pageY, hovered.userData);
@@ -540,39 +545,51 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative">
-      <button
-        onClick={() => setDarkMode(!darkMode)}
-        className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-      >
-        {darkMode ? <SunIcon /> : <MoonIcon />}
-      </button>
-      
-      {/* Fixed menu toggle at right edge with high z-index */}
-      <button 
-        onClick={() => setMenuOpen(!menuOpen)}
-        className="fixed top-16 right-4 z-50 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
-      >
-        <HamburgerIcon />
-      </button>
-      {menuOpen && (
-        <div className="fixed top-24 right-4 z-50 bg-white dark:bg-gray-800 p-4 rounded shadow-lg">
-          <Button type="button" onClick={handleGenerateAnswer} variant="default" className="mb-2 w-full">
-            Generate Answer
-          </Button>
-          <Button type="button" onClick={handleDownloadNodes} variant="default" className="w-full">
-            Download Conversation Data
-          </Button>
-        </div>
-      )}
+      {/* Outer container to limit width */}
+      <div className="max-w-5xl mx-auto px-4">
+        {/* Hamburger menu button and dark/light toggle remain unchanged */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="absolute top-4 left-4 z-50 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+        >
+          <HamburgerIcon />
+        </button>
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+        >
+          {darkMode ? <SunIcon /> : <MoonIcon />}
+        </button>
+        
+        {/* Padding before title */}
+        <div className="pt-20"></div>
+        
+        {/* Hamburger menu overlay */}
+        {menuOpen && (
+          <div className="absolute top-16 left-4 z-50 bg-white dark:bg-gray-900 p-4 rounded shadow-md flex flex-col space-y-2">
+            <Button type="button" onClick={() => { handleGenerateAnswer(); setMenuOpen(false); }} variant="secondary">
+              Generate Answer
+            </Button>
+            <Button type="button" onClick={() => { handleDownloadNodes(); setMenuOpen(false); }} variant="secondary">
+              Download Conversation Data
+            </Button>
+          </div>
+        )}
 
-      <div className="container mx-auto p-8 relative">
-        <h1 className="neon-title text-4xl font-bold mb-8 text-center">
-          Welcome to Soulprint
-        </h1>
-        <Card className="card mb-4">
+        {/* Title with neon effect centered */}
+        <div className="w-5/6 mx-auto text-center">
+          <h1 className="neon text-4xl font-bold mb-8 text-[#9b59b6] dark:text-white">
+            Welcome to Soulprint
+          </h1>
+        </div>
+
+        {/* Main conversation card */}
+        <Card className="card mb-4 mx-auto">
           <CardHeader className="relative mt-4">
-            <CardTitle>Today's topic of conversation: {topic}</CardTitle>
-            {/* Moved onMouseEnter/Leave to the outer container */}
+            <CardTitle className="neon text-[#9b59b6] dark:text-white">
+              Today's topic of conversation: {topic}
+            </CardTitle>
+            {/* Info icon and tooltip */}
             <div 
               className="absolute top-0 right-0 p-2" 
               onMouseEnter={() => setInfoHovered(true)} 
@@ -593,7 +610,7 @@ const App = () => {
           <CardContent>
             <p className="mb-2"><strong>Question:</strong> {question}</p>
             <form onSubmit={handleSubmit}>
-              <div className="flex flex-col space-y-2 h-auto">  {/* container with dynamic height */}
+              <div className="flex flex-col space-y-2 h-auto">
                 <textarea 
                   value={userInput}
                   onChange={(e) => {
@@ -605,8 +622,6 @@ const App = () => {
                   className={`mb-2 w-full p-2 border rounded resize-none ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
                   rows={2}
                 />
-                {/* Adjusted height to reduce blank space and smaller margin for buttons */}
-                <div ref={threeContainerRef} id="three-graph-container" style={{ width: '100%', height: '300px' }} />
                 <div className="flex flex-wrap space-x-4 mt-2">
                   <Button type="submit" variant="secondary">
                     Submit
@@ -628,6 +643,22 @@ const App = () => {
             {showSuccess && <p className="mt-2 text-green-500">Submitted successfully!</p>}
           </CardContent>
         </Card>
+
+        {/* Graph container with its own background and styling */}
+        {showGraph && (
+          <Card className="card mb-4 mx-auto">
+            <CardContent>
+              <div
+                ref={threeContainerRef}
+                id="three-graph-container"
+                className="w-full"
+                style={{ aspectRatio: '1 / 0.8' }}  // width:height = 1:0.8 (20% shorter than a square)
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Follow-up Topics Card */}
         {followUpTopics.length > 0 && (
           <Card className="card mb-4">
             <CardHeader>
@@ -642,17 +673,8 @@ const App = () => {
             </CardContent>
           </Card>
         )}
+        
       </div>
-      
-      {showGraph && (
-        <div className="container mx-auto p-8">
-          <Card className="card mt-4">
-            <CardContent>
-              <div ref={threeContainerRef} id="three-graph-container" style={{ width: '100%', height: '600px' }} />
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 };

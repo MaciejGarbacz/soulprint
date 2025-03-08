@@ -175,12 +175,16 @@ def create_app():
             G = nx.DiGraph()
             # Add nodes with labels
             for node in nodes:
-                G.add_node(node.id, label=node.topic)
+                if node.status == "active":  # Only include active nodes
+                    G.add_node(node.id, label=node.topic)
+                    
             # Add edges for parent-child relationships
             for node in nodes:
-                for child in node.children:
-                    G.add_edge(node.id, child.id)
-                    
+                if node.status == "active":  # Only include active nodes
+                    for child in node.children:
+                        if child.status == "active":  # Only include active children
+                            G.add_edge(node.id, child.id)
+                        
             # Calculate positions using planar layout
             pos = nx.planar_layout(G)
             
@@ -203,11 +207,13 @@ def create_app():
             node_x = []
             node_y = []
             node_text = []
+            node_ids = []
             for node in G.nodes():
                 x, y = pos[node]
                 node_x.append(x)
                 node_y.append(y)
                 node_text.append(G.nodes[node]['label'])
+                node_ids.append(node)
             node_trace = go.Scatter(
                 x=node_x,
                 y=node_y,
@@ -220,7 +226,8 @@ def create_app():
                     size=10,
                     line_width=2
                 ),
-                hoverinfo='text'
+                hoverinfo='text',
+                ids=node_ids  # Include node IDs to match with detailed data
             )
             
             # Build the Plotly figure

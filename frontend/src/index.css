@@ -1,11 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-white text-gray-900;
+/* Ensure the font is applied to all elements */
+*, *::before, *::after {
+  font-family: 'Inter';
 }
 
-.dark body {
-  @apply bg-gray-900 text-gray-100;
+/* Global Styles */
+body {
+  background: #0a0a0f; /* Dark background */
+  color: #f0f0f0;
+  line-height: 1.6;
+}
+
+/* Headings with Neon Effect */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
+}
+
+/* Synthwave Card Styling */
+.card {
+  background-color: #d3d3d3; /* Light grey background for light mode */
+  border: 1px solid #9b59b6; /* Synthwave purple border for light mode */
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem;
+  box-shadow: 0px 0px 15px 5px rgba(155, 89, 182, 0.3);
+  transition: all 0.3s ease;
+}
+
+.dark .card {
+  background-color: #1a1a2e; /* Dark blue background for dark mode */
+  border: 1px solid #0ff;  /* Cyan border for dark mode */
+  box-shadow: 0px 0px 15px 5px rgba(0, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.37);
+}
+
+.dark .card:hover {
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Ripple Animation for Buttons */
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Neon Glow Shadow */
+.neon-glow {
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+}
+
+/* Override hover neon shadow based on active mode */
+:not(.dark) .hover\:shadow-neon:hover {
+  box-shadow: 0 0 16px rgba(155, 89, 182, 1); /* Synthwave purple for light mode */
+}
+.dark .hover\:shadow-neon:hover {
+  box-shadow: 0 0 16px rgba(0, 255, 255, 1);   /* Cyan for dark mode */
+}
+
+/* Remove or comment out the previous universal definition, if needed: */
+/*
+.hover\:shadow-neon:hover {
+  box-shadow: 0 0 16px rgba(0, 255, 255, 1);
+}
+*/
+
+.hover\:shadow-neon-pulse:hover {
+  animation: neonPulse 1.5s infinite;
+}
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(220,20,60,0.6); }
+  50% { box-shadow: 0 0 20px rgba(220,20,60,1); }
+}
+
+/* Cyberpunk Focus for Inputs */
+.focus\:shadow-cyber:focus {
+  box-shadow: 0 0 12px #0ff;
+}
+
+/* Placeholder scanning animation */
+@keyframes placeholderScan {
+  0% { color: #ff007f; }
+  50% { color: #00ffff; }
+  100% { color: #ff007f; }
+}
+.placeholder-animate::placeholder {
+  animation: placeholderScan 2s infinite;
+}
+
+/* Neon glow effect for light mode (synthwave purple) */
+.neon {
+  text-shadow: 0 0 10px #9b59b6, 0 0 20px #9b59b6, 0 0 30px #9b59b6;
+}
+
+/* Override neon effect for dark mode (cyan) */
+.dark .neon {
+  text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+}
+
+/* Container spacing */
+.container {
+  padding: 2rem;
+  margin: 0 auto;
+}
+
+/* Grid Layout for structured, asymmetrical design */
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+/* Divider Accent – subtle glowing line */
+.divider {
+  border: none;
+  border-top: 2px solid #0ff;
+  margin: 2rem 0;
+  box-shadow: 0px 0px 10px 2px rgba(0, 255, 255, 0.4);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+}
+
+/* Add to your existing styles */
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Enhanced neon effects */
+.neon-text {
+  color: #fff;
+  text-shadow: 
+    0 0 7px #fff,
+    0 0 10px #fff,
+    0 0 21px #fff,
+    0 0 42px #bc13fe,
+    0 0 82px #bc13fe,
+    0 0 92px #bc13fe,
+    0 0 102px #bc13fe,
+    0 0 151px #bc13fe;
+}
+
+/* Floating card effect */
+.floating {
+  animation: float 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Pulsing shadow */
+.pulse-shadow {
+  animation: pulse 4s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(188, 19, 254, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(188, 19, 254, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(188, 19, 254, 0); }
+}
+
+/* Scanline effect */
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  animation: scan 6s linear infinite;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Input fields in dark mode */
+.dark textarea,
+.dark input {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.dark textarea:focus,
+.dark input:focus {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced hover states for interactive elements */
+.dark .hover\:bg-gray-700:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Menu overlay in dark mode */
+.dark .bg-gray-900 {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

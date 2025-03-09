@@ -1,42 +1,80 @@
 import * as React from "react";
+import { useState } from "react";
 import { cva } from "class-variance-authority";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "relative overflow-hidden inline-flex items-center justify-center rounded-md text-sm font-medium border transition-all duration-200 transform focus:outline-none focus:ring-2 focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-500 shadow-md border border-blue-700",
+        default:
+          "bg-gray-200 dark:bg-white/10 backdrop-blur-lg text-gray-900 dark:text-white border border-gray-300 dark:border-white/20 shadow-md neon-glow hover:translate-y-[-2px] hover:shadow-neon",
         destructive:
-          "bg-red-600 text-white hover:bg-red-500 shadow-md border border-red-700",
+          "bg-red-500 dark:bg-red-900/80 text-white border border-red-600 dark:border-red-700 shadow-md hover:translate-y-[-2px] hover:shadow-neon-pulse",
         outline:
-          "border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 shadow-sm",
+          "bg-transparent text-gray-900 dark:text-white border border-gray-300 dark:border-white/30 hover:bg-gray-100 dark:hover:bg-white/5 hover:translate-y-[-2px]",
         secondary:
-          "bg-gray-700 text-white hover:bg-gray-600 shadow-md border border-gray-800",
-        ghost: "hover:bg-gray-100 text-gray-800",
-        link: "text-blue-600 underline-offset-4 hover:underline",
+          "bg-gray-100 dark:bg-gray-900/70 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 shadow-md hover:translate-y-[-2px] hover:shadow-neon",
+        ghost:
+          "bg-transparent text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/5 hover:translate-y-[-2px]",
+        link:
+          "bg-transparent text-blue-500 dark:text-blue-300 hover:underline"
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-      },
+        icon: "h-10 w-10"
+      }
     },
     defaultVariants: {
       variant: "default",
-      size: "default",
-    },
+      size: "default"
+    }
   }
 );
 
 const Button = React.forwardRef(({ className, variant, size, ...props }, ref) => {
+  const [ripples, setRipples] = useState([]);
+
+  const createRipple = (event) => {
+    const buttonRect = event.currentTarget.getBoundingClientRect();
+    const rippleSize = buttonRect.width;
+    const x = event.clientX - buttonRect.left - rippleSize / 2;
+    const y = event.clientY - buttonRect.top - rippleSize / 2;
+    const newRipple = { x, y, size: rippleSize, key: Date.now() };
+    setRipples((prev) => [...prev, newRipple]);
+    setTimeout(() => {
+      setRipples((prev) => prev.filter(r => r.key !== newRipple.key));
+    }, 600);
+  };
+
   return (
     <button
-      className={buttonVariants({ variant, size, className })}
       ref={ref}
+      onMouseDown={createRipple}
+      className={`${buttonVariants({ variant, size, className })} relative`}
       {...props}
-    />
+    >
+      {props.children}
+      {ripples.map(ripple => (
+        <span
+          key={ripple.key}
+          style={{
+            position: 'absolute',
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+            width: ripple.size,
+            height: ripple.size,
+            top: ripple.y,
+            left: ripple.x,
+            transform: "scale(0)",
+            animation: "ripple 600ms linear"
+          }}
+        />
+      ))}
+    </button>
   );
 });
 Button.displayName = "Button";

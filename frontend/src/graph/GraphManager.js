@@ -1,6 +1,38 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { DragControls } from 'three/examples/jsm/controls/DragControls';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+
+// Update the NeonShaderMaterial definition
+const NeonShaderMaterial = {
+  uniforms: {
+    time: { value: 0 },
+    glowColor: { value: new THREE.Color(0x00ffff) },
+    pulseIntensity: { value: 5.0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float time;
+    uniform vec3 glowColor;
+    uniform float pulseIntensity;
+    varying vec2 vUv;
+    void main() {
+      // Increased frequency and amplitude for a more noticeable pulse effect
+      float glow = (sin(time * 3.0) * 0.5 + 0.5) * pulseIntensity;
+      vec3 color = glowColor * (1.0 + glow);
+      gl_FragColor = vec4(color, 0.7);
+    }
+  `
+};
 
 export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     if (!container || !graphData) return;
@@ -54,9 +86,28 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableRotate = false;
-    orbitControls.enablePan = false;
+    orbitControls.enablePan = true;
+    orbitControls.mouseButtons = {
+      LEFT: THREE.MOUSE.PAN,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.ROTATE
+    };
     orbitControls.enableDamping = true;
     orbitControls.dampingFactor = 0.25;
+    orbitControls.panSpeed = 0.8; // Adjust pan sensitivity
+
+    // Setup post-processing
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(width, height),
+      1.5,  // bloom strength
+      0.4,  // radius
+      0.85  // threshold
+    );
+    composer.addPass(bloomPass);
 
     // Extract node and edge data from graphData
     const nodeTrace = graphData.data.find((item) => item.mode && item.mode.includes('markers'));
@@ -65,6 +116,18 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     // Create node meshes
     const nodeGeometry = new THREE.SphereGeometry(0.5, 32, 32);
     const nodeMeshes = {};
+    const createNodeMaterial = (color) => {
+      const material = new THREE.MeshPhysicalMaterial({
+        color: color,
+        metalness: 0.9,
+        roughness: 0.1,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        emissive: color,
+        emissiveIntensity: 0.2
+      });
+      return material;
+    };
     if (nodeTrace) {
       nodeTrace.x.forEach((x, i) => {
         const y = nodeTrace.y[i];
@@ -73,15 +136,30 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
         const content = nodeData.get(id)
           ? nodeData.get(id).content
           : 'Loading content...';
-        const nodeMaterial = new THREE.MeshStandardMaterial({
-          color: 0xC0C0C0,
-          metalness: 0.8,
-          roughness: 0.3,
-          emissive: 0x000000,
-        });
+        
+        // Create single node with glow effect built in
+        const nodeMaterial = createNodeMaterial(0xC0C0C0);
         const nodeMesh = new THREE.Mesh(nodeGeometry, nodeMaterial);
         nodeMesh.userData = { id, label, content, defaultColor: new THREE.Color(0xC0C0C0) };
         nodeMesh.position.set(x * 10, y * 10, 0);
+        
+        // Add glow as a child mesh with slightly larger geometry
+        const glowGeometry = new THREE.SphereGeometry(0.7, 32, 32);
+        const glowMaterial = new THREE.ShaderMaterial({
+          ...NeonShaderMaterial,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          uniforms: {
+            ...NeonShaderMaterial.uniforms,
+            pulseIntensity: { value: 0.0 } // Initially no pulsing
+          }
+        });
+        const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+        glowMesh.renderOrder = -1; // Render behind the parent node
+        glowMesh.raycast = () => {};
+        nodeMesh.add(glowMesh);
+
         scene.add(nodeMesh);
         nodes.push(nodeMesh);
         nodeMeshes[id] = nodeMesh;
@@ -138,6 +216,17 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     });
 
     // Create edges connecting nodes
+    const createEdgeMaterial = () => {
+      return new THREE.ShaderMaterial({
+        ...NeonShaderMaterial,
+        transparent: true,
+        uniforms: {
+          ...NeonShaderMaterial.uniforms,
+          glowColor: { value: new THREE.Color(0x008080) }, // Set to dark cyan
+          pulseIntensity: { value: 0.0 }  // Initially no pulsing
+        }
+      });
+    };
     if (lineTrace) {
       for (let i = 0; i < lineTrace.x.length; i += 3) {
         const x1 = lineTrace.x[i] * 10, y1 = lineTrace.y[i] * 10;
@@ -155,11 +244,7 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
           const lineGeometry = new THREE.BufferGeometry().setFromPoints([
             startNode.position, endNode.position
           ]);
-          const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0xff00ff,
-            transparent: true,
-            opacity: 0.7,
-          });
+          const lineMaterial = createEdgeMaterial();
           const lineMesh = new THREE.Line(lineGeometry, lineMaterial);
           lineMesh.userData = { startNode, endNode };
           scene.add(lineMesh);
@@ -169,27 +254,51 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     }
 
     // Setup drag controls and tooltip handling
+    const allDraggableObjects = [...nodes];
+    nodes.forEach(node => {
+      // Add all child meshes (glow and sprite) to draggable objects
+      node.children.forEach(child => {
+        allDraggableObjects.push(child);
+      });
+    });
+
+    // Only allow parent node meshes to be draggable
     const dragControls = new DragControls(nodes, camera, renderer.domElement);
-    dragControls.addEventListener('dragstart', () => {
+
+    dragControls.addEventListener('dragstart', (event) => {
       orbitControls.enabled = false;
       tooltip.style.display = 'none';
+      
+      // If dragging a child mesh, switch to dragging the parent node
+      const draggedObject = event.object;
+      if (draggedObject.parent && nodes.includes(draggedObject.parent)) {
+        dragControls.transformGroup = true;
+        event.object = draggedObject.parent;
+      }
+      
+      // Store original position for potential collision resolution
+      event.object.userData.dragStartPosition = event.object.position.clone();
     });
+
     dragControls.addEventListener('drag', (event) => {
       const dragged = event.object;
-      dragged.position.z = 0;
+      dragged.position.z = 0; // Keep node in plane
+      
+      // Update connected edges
       edges.forEach((edge) => {
         if (edge.userData.startNode === dragged || edge.userData.endNode === dragged) {
-          const positions = edge.geometry.attributes.position.array;
-          positions[0] = edge.userData.startNode.position.x;
-          positions[1] = edge.userData.startNode.position.y;
-          positions[3] = edge.userData.endNode.position.x;
-          positions[4] = edge.userData.endNode.position.y;
+          edge.geometry.setFromPoints([
+            edge.userData.startNode.position,
+            edge.userData.endNode.position
+          ]);
           edge.geometry.attributes.position.needsUpdate = true;
         }
       });
     });
+
     dragControls.addEventListener('dragend', () => {
       orbitControls.enabled = true;
+      dragControls.transformGroup = false;
       setTimeout(resolveCollisions, 200);
     });
 
@@ -284,52 +393,103 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(nodes, false);
 
-      // Reset all nodes to default silver
+      // Reset all nodes to their default state
       nodes.forEach((node) => {
         node.material.color.copy(node.userData.defaultColor);
+        node.scale.setScalar(1.0);
+        if (node.children[0].material.uniforms) {
+          node.children[0].material.uniforms.pulseIntensity.value = 0.0; // No pulsing by default
+        }
+      });
+
+      // Reset all edges to their default state: no pulsing and dark cyan color
+      edges.forEach(edge => {
+        edge.material.uniforms.pulseIntensity.value = 0.0;
+        edge.material.uniforms.glowColor.value.set(0x008080); // dark cyan
       });
 
       if (intersects.length > 0 && intersects[0].object.userData?.label) {
         const hovered = intersects[0].object;
-        // Change color on hover using different colors based on dark mode
-        const primaryHoverColor = darkMode ? 0x00ffff : 0x8e44ad;
+        const primaryHoverColor = 0x00ffff; // neon cyan
         hovered.material.color.set(primaryHoverColor);
-        tooltip.style.display = 'block';
-        tooltip.style.left = `${event.pageX}px`;
-        tooltip.style.top = `${event.pageY}px`;
-        tooltip.style.color = darkMode ? '#f7fafc' : '#1a202c';
-        tooltip.innerHTML = `<strong>${hovered.userData.label}</strong><br/>${hovered.userData.content}`;
-      } else {
-        tooltip.style.display = 'none';
+        // Increase glow intensity for hovered node
+        if (hovered.children[0].material.uniforms) {
+          hovered.children[0].material.uniforms.pulseIntensity.value = 2.0; // Adjust as needed
+        }
+        // Enhance connected edges with pronounced pulsing glow and update adjacent nodes
+        edges.forEach(edge => {
+          if (edge.userData.startNode === hovered || edge.userData.endNode === hovered) {
+            edge.material.uniforms.pulseIntensity.value = 2.5; // Adjust as needed
+            edge.material.uniforms.glowColor.value.set(primaryHoverColor);
+            // Determine the adjacent node
+            const adjacent = edge.userData.startNode === hovered ? edge.userData.endNode : edge.userData.startNode;
+            if (adjacent) {
+              adjacent.material.color.set(primaryHoverColor);
+              if (adjacent.children[0].material.uniforms) {
+                adjacent.children[0].material.uniforms.pulseIntensity.value = 2.0; // Same intensity as hovered
+              }
+            }
+          }
+        });
       }
     };
     const onMouseLeave = () => {
       tooltip.style.display = 'none';
+      // Reset nodes
       nodes.forEach((node) => {
         node.material.color.copy(node.userData.defaultColor);
+        if (node.children[0].material.uniforms) {
+          node.children[0].material.uniforms.pulseIntensity.value = 0.0; // No pulsing by default
+        }
+      });
+      // Reset edges to default appearance: no pulsing and dark cyan color
+      edges.forEach(edge => {
+        edge.material.uniforms.pulseIntensity.value = 0.0;
+        edge.material.uniforms.glowColor.value.set(0x008080);
       });
     };
     renderer.domElement.addEventListener('mousemove', onMouseMove);
     renderer.domElement.addEventListener('mouseleave', onMouseLeave);
 
     // Animation loop
+    const clock = new THREE.Clock();
     let frameId;
     const animateScene = () => {
       frameId = requestAnimationFrame(animateScene);
+      const time = clock.getElapsedTime();
+
+      // Update shader uniforms
+      edges.forEach(edge => {
+        edge.material.uniforms.time.value = time;
+      });
+      nodes.forEach(node => {
+        if (node.children[0].material.uniforms) {
+          node.children[0].material.uniforms.time.value = time;
+        }
+      });
+
       orbitControls.update();
       updateEdgePositions();
-      renderer.render(scene, camera);
+      composer.render();
     };
     animateScene();
 
     // Clean up callback on unmount
     return () => {
+      // Reset node positions
+      nodes.forEach(node => {
+        if (node.userData.originalPosition) {
+          node.position.copy(node.userData.originalPosition);
+        }
+      });
+
       renderer.domElement.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('mouseleave', onMouseLeave);
       orbitControls.dispose();
       dragControls.dispose();
       cancelAnimationFrame(frameId);
       renderer.dispose();
+      composer.dispose();
       // Clean up tooltip if it exists
       if (tooltip && tooltip.parentNode) {
         tooltip.parentNode.removeChild(tooltip);

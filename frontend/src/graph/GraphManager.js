@@ -114,7 +114,7 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     const lineTrace = graphData.data.find((item) => item.mode && item.mode.includes('lines'));
 
     // Create node meshes
-    const nodeGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const nodeGeometry = new THREE.SphereGeometry(0.25, 32, 32); // was 0.5
     const nodeMeshes = {};
     const createNodeMaterial = (color) => {
       const material = new THREE.MeshPhysicalMaterial({
@@ -144,7 +144,7 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
         nodeMesh.position.set(x * 10, y * 10, 0);
         
         // Add glow as a child mesh with slightly larger geometry
-        const glowGeometry = new THREE.SphereGeometry(0.7, 32, 32);
+        const glowGeometry = new THREE.SphereGeometry(0.35, 32, 32); // was 0.7
         const glowMaterial = new THREE.ShaderMaterial({
           ...NeonShaderMaterial,
           transparent: true,

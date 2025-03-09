@@ -5,6 +5,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { createAnimatedNebula } from './AnimatedNebula';
 
 // Update the NeonShaderMaterial definition
 const NeonShaderMaterial = {
@@ -73,6 +74,75 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.set(10, 10, 10);
     scene.add(directionalLight);
+
+    // 1. Create a procedural nebula texture using a canvas
+    const nebulaCanvas = document.createElement('canvas');
+    nebulaCanvas.width = nebulaCanvas.height = 512;
+    const nctx = nebulaCanvas.getContext('2d');
+    const imageData = nctx.createImageData(512, 512);
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      // Use very subtle noise with low opacity variations
+      const noise = Math.floor(Math.random() * 30);
+      imageData.data[i] = 10 + noise;      // R
+      imageData.data[i + 1] = 10 + noise;  // G
+      imageData.data[i + 2] = 30 + noise;  // B
+      imageData.data[i + 3] = Math.floor(Math.random() * 20); // Alpha: very subtle
+    }
+    nctx.putImageData(imageData, 0, 0);
+    const nebulaTexture = new THREE.CanvasTexture(nebulaCanvas);
+    nebulaTexture.encoding = THREE.SRGBColorSpace; // Updated encoding
+
+    const nebulaGeometry = new THREE.PlaneGeometry(100, 100);
+    const nebulaMaterial = new THREE.MeshBasicMaterial({
+      map: nebulaTexture,
+      opacity: 0.12,         // Adjusted opacity for a deeper, non-distracting feel
+      transparent: true,
+      depthWrite: false,
+    });
+    const nebulaMesh = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+    nebulaMesh.position.set(0, 0, -50); // Place far behind nodes
+    scene.add(nebulaMesh);
+
+    // 2. Add a soft radial gradient overlay to further focus the content
+    const gradientCanvas = document.createElement('canvas');
+    gradientCanvas.width = gradientCanvas.height = 512;
+    const gctx = gradientCanvas.getContext('2d');
+    const gradient = gctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+    gradient.addColorStop(0, 'rgba(10, 10, 30, 0.0)');  // Transparent center
+    gradient.addColorStop(1, 'rgba(10, 10, 30, 0.85)'); // Dark edges
+    gctx.fillStyle = gradient;
+    gctx.fillRect(0, 0, 512, 512);
+    const gradientTexture = new THREE.CanvasTexture(gradientCanvas);
+    const gradientMaterial = new THREE.MeshBasicMaterial({
+      map: gradientTexture,
+      opacity: 0.2,
+      transparent: true,
+      depthWrite: false,
+    });
+    const gradientMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), gradientMaterial);
+    gradientMesh.position.set(0, 0, -49); // Slightly in front of the nebula
+    scene.add(gradientMesh);
+
+    // 3. Add tiny distant stars using a particle system (unchanged, but adjustable)
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 500;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i++) {
+      starPositions[i] = (Math.random() - 0.5) * 200;
+    }
+    starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.5,
+      opacity: 0.4,
+      transparent: true,
+    });
+    const starField = new THREE.Points(starGeometry, starMaterial);
+    starField.position.z = -45; // In front of gradient
+    scene.add(starField);
+
+    const { nebulaMesh: animatedNebulaMesh, material: animatedNebulaMaterial } = createAnimatedNebula();
+    scene.add(animatedNebulaMesh);
 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.z = 15;
@@ -467,6 +537,8 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
           node.children[0].material.uniforms.time.value = time;
         }
       });
+
+      animatedNebulaMaterial.uniforms.time.value = time;
 
       orbitControls.update();
       updateEdgePositions();

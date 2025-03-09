@@ -330,5 +330,9 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
       dragControls.dispose();
       cancelAnimationFrame(frameId);
       renderer.dispose();
+      // Clean up tooltip if it exists
+      if (tooltip && tooltip.parentNode) {
+        tooltip.parentNode.removeChild(tooltip);
+      }
     };
 };

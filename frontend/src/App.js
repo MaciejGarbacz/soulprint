@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
 import SynthwaveBackground from './components/SynthwaveBackground';
 import { initGraph } from './graph/GraphManager';
 
@@ -43,16 +42,10 @@ const App = () => {
   const [showGraph, setShowGraph] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoHovered, setInfoHovered] = useState(false);
-  const [hoveredNode, setHoveredNode] = useState(null);
   const [graphData, setGraphData] = useState(null);
 
   // References for Three.js and tooltip management
   const threeContainerRef = useRef(null);
-  const sceneRef = useRef(null);
-  const cameraRef = useRef(null);
-  const rendererRef = useRef(null);
-  const nodesRef = useRef([]);
-  const edgesRef = useRef([]);
   const nodeDataRef = useRef(new Map());
 
   // Fetch initial data for topic, question, LLM response 

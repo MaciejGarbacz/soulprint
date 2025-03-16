@@ -287,12 +287,34 @@ const App = () => {
           {showGraph && (
             <Card className="card mb-4 mx-auto">
               <CardContent>
-                <div
-                  ref={threeContainerRef}
-                  id="three-graph-container"
-                  className="w-full"
-                  style={{ aspectRatio: '1 / 0.8' }}  // width:height = 1:0.8 (20% shorter than a square)
-                />
+                <div className="flex gap-4" style={{ height: '600px' }}>
+                  <div className="flex-1 flex flex-col">
+                    <h3 className="text-lg font-semibold mb-2">Mindmap</h3>
+                    <div
+                      ref={threeContainerRef}
+                      id="three-graph-container"
+                      className="flex-1"
+                      style={{ height: '100%' }}
+                    />
+                  </div>
+                  <div className="w-1/3 border-l border-gray-200 dark:border-gray-700 pl-4 h-full flex flex-col">
+                    <h3 className="text-lg font-semibold mb-2">Topic Details</h3>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="h-full prose dark:prose-invert overflow-y-auto 
+                        bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-lg p-4
+                        scrollbar-thin scrollbar-track-transparent 
+                        scrollbar-thumb-purple-400/50 dark:scrollbar-thumb-purple-600/50
+                        hover:scrollbar-thumb-purple-500/70 dark:hover:scrollbar-thumb-purple-500/70
+                        scrollbar-thumb-rounded-full">
+                        <div id="node-details-box" className="text-sm space-y-4">
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Hover over a node to see its details
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

@@ -456,6 +456,7 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
     // Mouse hover tooltip implementation
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
+    let lastHoveredNode = null;
     const onMouseMove = (event) => {
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -463,61 +464,95 @@ export const initGraph = ({ container, graphData, darkMode, nodeData }) => {
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(nodes, false);
 
-      // Reset all nodes to their default state
+      // Reset all nodes and edges to default state
       nodes.forEach((node) => {
-        node.material.color.copy(node.userData.defaultColor);
-        node.scale.setScalar(1.0);
-        if (node.children[0].material.uniforms) {
-          node.children[0].material.uniforms.pulseIntensity.value = 0.0; // No pulsing by default
+        if (node !== lastHoveredNode) {
+          node.material.color.copy(node.userData.defaultColor);
+          node.scale.setScalar(1.0);
+          if (node.children[0].material.uniforms) {
+            node.children[0].material.uniforms.pulseIntensity.value = 0.0;
+          }
         }
       });
-
-      // Reset all edges to their default state: no pulsing and dark cyan color
       edges.forEach(edge => {
         edge.material.uniforms.pulseIntensity.value = 0.0;
-        edge.material.uniforms.glowColor.value.set(0x008080); // dark cyan
+        edge.material.uniforms.glowColor.value.set(0x008080);
       });
 
+      const detailsBox = document.getElementById('node-details-box');
       if (intersects.length > 0 && intersects[0].object.userData?.label) {
         const hovered = intersects[0].object;
-        const primaryHoverColor = 0x00ffff; // neon cyan
+        lastHoveredNode = hovered; // Update last hovered node
+        const primaryHoverColor = 0x00ffff;
         hovered.material.color.set(primaryHoverColor);
-        // Increase glow intensity for hovered node
-        if (hovered.children[0].material.uniforms) {
-          hovered.children[0].material.uniforms.pulseIntensity.value = 2.0; // Adjust as needed
+
+        // Update details box content
+        if (detailsBox) {
+          const content = hovered.userData.content || 'No conversation recorded';
+          const messages = content.split('\nQ: ').filter(Boolean);
+          
+          detailsBox.innerHTML = `
+            <h4 class="font-semibold mb-4 text-[#9b59b6] dark:text-white">${hovered.userData.label}</h4>
+            <div class="space-y-4">
+              ${messages.map(message => {
+                const [question, answer] = message.split('\nA: ');
+                return `
+                  <div class="flex flex-col gap-3">
+                    <div class="flex items-start">
+                      <div class="bg-gradient-to-br from-purple-400/20 to-purple-600/20 dark:from-purple-500/20 dark:to-purple-800/20 
+                        border border-purple-300/50 dark:border-purple-600/50
+                        rounded-2xl px-4 py-2 max-w-[90%] break-words backdrop-blur-sm
+                        shadow-lg shadow-purple-500/10">
+                        <p class="text-sm text-gray-800 dark:text-gray-100">
+                          ${(question || message).trim()}
+                        </p>
+                      </div>
+                    </div>
+                    ${answer ? `
+                      <div class="flex items-start justify-end">
+                        <div class="bg-gradient-to-br from-blue-400/20 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-800/20
+                          border border-blue-300/50 dark:border-blue-600/50
+                          rounded-2xl px-4 py-2 max-w-[90%] break-words backdrop-blur-sm
+                          shadow-lg shadow-blue-500/10">
+                          <p class="text-sm text-gray-800 dark:text-gray-100">
+                            ${answer.trim()}
+                          </p>
+                        </div>
+                      </div>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `;
         }
-        // Enhance connected edges with pronounced pulsing glow and update adjacent nodes
+
+        // Handle node glow and edge effects
+        if (hovered.children[0].material.uniforms) {
+          hovered.children[0].material.uniforms.pulseIntensity.value = 2.0;
+        }
         edges.forEach(edge => {
           if (edge.userData.startNode === hovered || edge.userData.endNode === hovered) {
-            edge.material.uniforms.pulseIntensity.value = 2.5; // Adjust as needed
+            edge.material.uniforms.pulseIntensity.value = 2.5;
             edge.material.uniforms.glowColor.value.set(primaryHoverColor);
-            // Determine the adjacent node
             const adjacent = edge.userData.startNode === hovered ? edge.userData.endNode : edge.userData.startNode;
             if (adjacent) {
               adjacent.material.color.set(primaryHoverColor);
               if (adjacent.children[0].material.uniforms) {
-                adjacent.children[0].material.uniforms.pulseIntensity.value = 2.0; // Same intensity as hovered
+                adjacent.children[0].material.uniforms.pulseIntensity.value = 2.0;
               }
             }
           }
         });
       }
     };
+
+    // Update the onMouseLeave handler
     const onMouseLeave = () => {
-      tooltip.style.display = 'none';
-      // Reset nodes
-      nodes.forEach((node) => {
-        node.material.color.copy(node.userData.defaultColor);
-        if (node.children[0].material.uniforms) {
-          node.children[0].material.uniforms.pulseIntensity.value = 0.0; // No pulsing by default
-        }
-      });
-      // Reset edges to default appearance: no pulsing and dark cyan color
-      edges.forEach(edge => {
-        edge.material.uniforms.pulseIntensity.value = 0.0;
-        edge.material.uniforms.glowColor.value.set(0x008080);
-      });
+      // Only reset if we want to clear the state when mouse leaves the container
+      // Removing the content reset to keep the last hovered node's content visible
     };
+
     renderer.domElement.addEventListener('mousemove', onMouseMove);
     renderer.domElement.addEventListener('mouseleave', onMouseLeave);
 
